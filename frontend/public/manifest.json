@@ -1,0 +1,9 @@
+{
+    "short_name": "Microservices Demo",
+    "name": "Microservices with Keycloak and KrakenD",
+    "icons": [],
+    "start_url": ".",
+    "display": "standalone",
+    "theme_color": "#000000",
+    "background_color": "#ffffff"
+  }

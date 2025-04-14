@@ -1,0 +1,67 @@
+version: '3'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.3
+    container_name: keycloak
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=dev-file
+    ports:
+      - "8080:8080"
+    command: start-dev
+    networks:
+      - app-network
+  
+  krakend:
+    image: devopsfaith/krakend:2.5.0
+    container_name: krakend
+    volumes:
+      - ./krakend:/etc/krakend
+    ports:
+      - "8090:8080"
+    depends_on:
+      - keycloak
+    networks:
+      - app-network
+  
+  ms-produit:
+    build: ./ms-produit
+    container_name: ms-produit
+    ports:
+      - "8081:8081"
+    depends_on:
+      - keycloak
+      - krakend
+    networks:
+      - app-network
+
+  ms-commande:
+    build: ./ms-commande
+    container_name: ms-commande
+    ports:
+      - "8082:8082"
+    depends_on:
+      - keycloak
+      - krakend
+    networks:
+      - app-network
+      
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - keycloak
+      - krakend
+      - ms-produit
+      - ms-commande
+    networks:
+      - app-network
+      
+networks:
+  app-network:
+    driver: bridge
+    external: true
