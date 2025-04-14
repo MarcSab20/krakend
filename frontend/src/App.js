@@ -1,119 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
-import { Container, Button, Card, Alert } from 'react-bootstrap';
+import { Container, Button, Card, Alert, Spinner } from 'react-bootstrap';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
+import Login from './components/Login';
+import Signup from './components/Signup';
+import Dashboard from './components/Dashboard';
+
+// Composant principal qui attend l'initialisation de Keycloak avant de rendre l'application
 function App() {
-  const { keycloak, initialized } = useKeycloak();
-  const [products, setProducts] = useState(null);
-  const [orders, setOrders] = useState(null);
-  const [error, setError] = useState(null);
-
-  const fetchProducts = async () => {
-    try {
-      setError(null);
-      // Ensure we have a valid token by refreshing if necessary
-      if (keycloak.isTokenExpired(30)) { // Refresh if less than 30 seconds left
-        await keycloak.updateToken(60);
-      }
-      const response = await axios.get('http://localhost:8090/api/products', {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`
-        }
-      });
-      console.log('Products response:', response);
-      setProducts(response.data);
-      setOrders(null);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-      setError('Failed to fetch products. Please try again.');
-    }
-  };
-
-  const fetchOrders = async () => {
-    try {
-      setError(null);
-      // Ensure we have a valid token by refreshing if necessary
-      if (keycloak.isTokenExpired(30)) { // Refresh if less than 30 seconds left
-        await keycloak.updateToken(60);
-      }
-      const response = await axios.get('http://localhost:8090/api/orders', {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`
-        }
-      });
-      console.log('Orders response:', response);
-      setOrders(response.data);
-      setProducts(null);
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError('Failed to fetch orders. Please try again.');
-    }
-  };
-
-  const refreshPage = () => {
-    window.location.reload();
-  };
-
+  const { initialized } = useKeycloak();
+  
   if (!initialized) {
-    return <div>Loading...</div>;
-  }
-
-  if (!keycloak.authenticated) {
     return (
-      <Container>
-        <h1>Welcome to Microservices Demo</h1>
-        <p>Please login to continue.</p>
-        <Button onClick={() => keycloak.login()}>Login</Button>
+      <Container className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
       </Container>
     );
   }
 
   return (
-    <Container>
-      <h1>Microservices Demo</h1>
-      <p>Welcome, {keycloak.tokenParsed.preferred_username}!</p>
-      
-      <div className="d-flex">
-        <Button variant="primary" onClick={fetchProducts}>
-          Call Product Service
-        </Button>
-        <Button variant="success" onClick={fetchOrders}>
-          Call Order Service
-        </Button>
-        <Button variant="secondary" onClick={refreshPage}>
-          Reload Page
-        </Button>
-        <Button variant="danger" onClick={() => keycloak.logout()}>
-          Logout
-        </Button>
-      </div>
-
-      {error && (
-        <Alert variant="danger" className="mt-3">
-          {error}
-        </Alert>
-      )}
-
-      {products && (
-        <Card className="mt-3">
-          <Card.Header>Products</Card.Header>
-          <Card.Body>
-            <pre>{JSON.stringify(products, null, 2)}</pre>
-          </Card.Body>
-        </Card>
-      )}
-
-      {orders && (
-        <Card className="mt-3">
-          <Card.Header>Orders</Card.Header>
-          <Card.Body>
-            <pre>{JSON.stringify(orders, null, 2)}</pre>
-          </Card.Body>
-        </Card>
-      )}
-    </Container>
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/" element={<RootRedirect />} />
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
 }
+
+// Composant spécial pour la redirection initiale qui vérifie l'état d'authentification
+const RootRedirect = () => {
+  const { keycloak } = useKeycloak();
+  
+  // Si déjà authentifié, aller au tableau de bord
+  if (keycloak.authenticated) {
+    return <Navigate to="/dashboard" />;
+  }
+  
+  // Sinon, aller à la page de connexion personnalisée
+  return <Navigate to="/login" />;
+};
+
+// Composant pour protéger les routes qui nécessitent une authentification
+const PrivateRoute = ({ children }) => {
+  const { keycloak } = useKeycloak();
+  const location = useLocation();
+
+  // Si pas authentifié, rediriger vers login avec l'emplacement actuel en state
+  if (!keycloak.authenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
 
 export default App;

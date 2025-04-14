@@ -25,6 +25,19 @@
       "endpoint": "/api/products",
       "method": "GET",
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://keycloak:8080/realms/microservices-demo/protocol/openid-connect/certs",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            ["sub", "x-user-id"],
+            ["email", "x-user-email"],
+            ["preferred_username", "x-user-name"],
+            ["realm_access", "x-user-roles"]
+          ]
+        }
+      },
       "backend": [
         {
           "url_pattern": "/api/products",
@@ -37,6 +50,19 @@
       "endpoint": "/api/orders",
       "method": "GET",
       "output_encoding": "no-op",
+      "extra_config": {
+        "auth/validator": {
+          "alg": "RS256",
+          "jwk_url": "http://keycloak:8080/realms/microservices-demo/protocol/openid-connect/certs",
+          "disable_jwk_security": true,
+          "propagate_claims": [
+            ["sub", "x-user-id"],
+            ["email", "x-user-email"],
+            ["preferred_username", "x-user-name"],
+            ["realm_access", "x-user-roles"]
+          ]
+        }
+      },
       "backend": [
         {
           "url_pattern": "/api/orders",
